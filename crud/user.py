@@ -16,17 +16,42 @@ from schema.user import UserUpdate
 from datetime import timedelta
 
 
-# GET USER BY ID(ADMIN)
+# ---------------------------
+# User Management Functions
+# ---------------------------
+
+
+# GET USER BY ID (ADMIN)
+# - Retrieves a user by their ID.
+# - Parameters:
+#   - `db (Session)`: Database session.
+#   - `user_id (int)`: ID of the user to fetch.
+# - Returns:
+#   - `User`: The retrieved user if found; `None` otherwise.
 def get_user_by_id(db: Session, user_id: int):
     return db.query(User).filter(User.id == user_id).first()
 
 
-# GET A USER BY E-MAIL
+# GET USER BY EMAIL
+# - Retrieves a user by their email.
+# - Parameters:
+#   - `db (Session)`: Database session.
+#   - `email (str)`: Email of the user to fetch.
+# - Returns:
+#   - `User`: The retrieved user if found; `None` otherwise.
 def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
 
 
 # CREATE USER
+# - Creates a new user in the system.
+# - Parameters:
+#   - `user (UserCreate)`: The user data to create the new user.
+#   - `db (db_dependency)`: Database session.
+# - Returns:
+#   - `User`: The newly created user object.
+# - Raises:
+#   - `HTTPException`: If the username or email already exists in the system.
 async def create_user(
     user: UserCreate,
     db: db_dependency,
@@ -54,11 +79,17 @@ async def create_user(
     return db_user
 
 
-# Function to authenticate the user and issue a token
-
-
-# ENABLING 2FA IN CASE THERES AN ERROR
-# Function to authenticate the user and issue a token
+# LOGIN USER
+# - Authenticates a user and issues an access token.
+# - Parameters:
+#   - `db (db_dependency)`: Database session.
+#   - `user_login (UserLogin)`: User login credentials.
+#   - `totp_code (str)`: The TOTP code if two-factor authentication (2FA) is enabled.
+# - Returns:
+#   - `Token`: The generated access token.
+# - Raises:
+#   - `HTTPException`: If the credentials are invalid or the TOTP code is incorrect.
+# NOTE: ENABLING 2FA IN CASE THERES AN ERROR
 def login_user(
     db: db_dependency,
     user_login: UserLogin,  # Login request data
@@ -106,7 +137,16 @@ def login_user(
     return Token(access_token=access_token, token_type="bearer")
 
 
-# UPDATE_USER
+# UPDATE USER
+# - Updates a user's details based on the provided `UserUpdate` schema.
+# - Parameters:
+#   - `db (Session)`: Database session.
+#   - `user_id (int)`: ID of the user to update.
+#   - `user_update (UserUpdate)`: Updated user data.
+# - Returns:
+#   - `User`: The updated user object.
+# - Raises:
+#   - `ValueError`: If the user is not found.
 def update_user(db: Session, user_id: int, user_update: UserUpdate):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -119,6 +159,12 @@ def update_user(db: Session, user_id: int, user_update: UserUpdate):
 
 
 # DELETE USER
+# - Deletes a user by their ID.
+# - Parameters:
+#   - `db (Session)`: Database session.
+#   - `user_id (int)`: ID of the user to delete.
+# - Returns:
+#   - `None`: If the user is deleted successfully.
 def delete_user(db: Session, user_id: int):
     user = db.query(User).filter(User.id == user_id).first()
     if user:
@@ -127,7 +173,21 @@ def delete_user(db: Session, user_id: int):
     return None
 
 
+# ---------------------------
+# Password Management Functions
+# ---------------------------
+
+
 # CHANGE USER PASSWORD
+# - Changes a user's password.
+# - Parameters:
+#   - `db (Session)`: Database session.
+#   - `user_id (int)`: ID of the user whose password is being changed.
+#   - `new_password (str)`: The new password to set.
+# - Returns:
+#   - `User`: The updated user object with the new password.
+# - Raises:
+#   - `ValueError`: If the user is not found.
 def change_user_password(db: Session, user_id: int, new_password: str):
     user = db.query(User).filter(User.id == user_id).first()
     if user:

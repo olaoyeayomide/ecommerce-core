@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-
 from api.user import router as user_router
 from api.product import router as product_router
 from api.order import router as order_router
@@ -8,12 +7,9 @@ from api.mfa import router as mfa_router
 from api.email import router as email_router
 from api.auth import router as auth_router
 from payment.paystack_routers import router as payment_router
-
-# from api import users, products, orders, payments
 from db.session import Base, engine
 
 app = FastAPI()
-
 
 # Mount the directory as a static route to serve images
 app.mount(

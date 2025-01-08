@@ -7,14 +7,14 @@ from sqlalchemy import (
     DateTime,
     Boolean,
     Table,
+    JSON,
 )
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from db.session import Base
+from sqlalchemy.sql.sqltypes import Enum as SQLAEnum
 from enum import Enum
 import uuid
-from sqlalchemy.sql import func
-from sqlalchemy import JSON
 
 order_product_association = Table(
     "order_product",
@@ -25,10 +25,10 @@ order_product_association = Table(
 
 
 # ROLE MODEL
-class Role(Enum):
+class Role(str, Enum):
+    USER = "user"
     ADMIN = "admin"
     VENDOR = "vendor"
-    USER = "user"
 
 
 # USER MODEL
@@ -41,15 +41,22 @@ class User(Base):
     phone_number = Column(String)
     hashed_password = Column(String)
     otp_secret = Column(String, nullable=True)
-    role = Column(String, default=Role.USER.value)
-    permissions = Column(JSON, nullable=True)  # Additional fine-grained permissions
+    role = Column(SQLAEnum(Role), default=Role.USER)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     # Relationship to orders
     orders = relationship("Order", back_populates="user")
 
 
-# USER MODEL
+# ORDER MODEL
+class OrderStatus(Enum):
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    SHIPPED = "shipped"
+    DELIVERED = "delivered"
+    CANCELED = "canceled"
+
+
 class Order(Base):
     __tablename__ = "orders"
     id = Column(Integer, primary_key=True, index=True)
@@ -62,11 +69,9 @@ class Order(Base):
         nullable=False,
         default=lambda: str(uuid.uuid4()),
     )
-    order_status = Column(String, default="pending")
+    status = Column(SQLAEnum(OrderStatus), default=OrderStatus.PENDING)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
-    )  # Last update time
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     # Many-to-many relationship with Product

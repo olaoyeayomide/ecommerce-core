@@ -10,8 +10,6 @@ class ProductCreate(BaseModel):
     stock: int
     image_url: Optional[str] = None
 
-    # print(f"{image_url}")
-
 
 class ProductResponse(ProductCreate):
     id: int
