@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse
-
 from payment.paystack_crud import (
     initialize_payment,
     verify_payment,
@@ -28,6 +27,22 @@ PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY")
 PAYLOAD = '{"event": "charge.success", "data": {"reference": "test_reference", "amount": 500000, "status": "success"}}'
 
 
+# -----------------------------
+# API Endpoints for Payment
+# -----------------------------
+
+
+# INITIALIZE PAYMENT ENDPOINT
+# - This endpoint initializes a payment for an order by calling the Paystack API.
+# - Parameters:
+#   - `order_reference (str)`: The reference ID of the order.
+#   - `db (db_dependency)`: The database session.
+# - Returns:
+#   - A dictionary with a "status" key and the Paystack payment URL for the user to complete the payment.
+# - Raises:
+#   - HTTPException with a 404 status code if the order is not found.
+#   - HTTPException with a 400 status code if the order's total price is invalid.
+#   - HTTPException with a 500 status code if payment initialization fails.
 @router.post(
     "/initialize-payment/",
     dependencies=[Depends(has_role(["admin", "user", "vendor"]))],
@@ -51,6 +66,15 @@ async def initialize_payment_endpoint(order_reference: str, db: db_dependency):
         )
 
 
+# VERIFY PAYMENT ENDPOINT
+# - This endpoint verifies the payment status for a given reference.
+# - Parameters:
+#   - `reference (str)`: The reference ID of the payment.
+#   - `db (db_dependency)`: The database session to verify payment details.
+# - Returns:
+#   - A dictionary with a "status" key and the payment data if successful.
+# - Raises:
+#   - HTTPException with a 400 status code if an error occurs during payment verification.
 @router.get("/verify-payment/", dependencies=[Depends(has_role(["admin"]))])
 async def verify_payment_endpoint(reference: str, db: db_dependency):
     try:
@@ -60,6 +84,14 @@ async def verify_payment_endpoint(reference: str, db: db_dependency):
         raise HTTPException(status_code=400, detail=f"Error occurred: {str(e)}")
 
 
+# PAYMENT STATUS ENDPOINT
+# - This endpoint retrieves the status of a payment by referencing the transaction.
+# - Parameters:
+#   - `reference (str)`: The reference ID of the payment.
+# - Returns:
+#   - A dictionary containing the payment status.
+# - Raises:
+#   - HTTPException with a 400 status code if any error occurs.
 @router.get("/payment-status/", dependencies=[Depends(has_role(["admin", "user"]))])
 async def payment_status_endpoint(reference: str):
     try:
@@ -69,6 +101,12 @@ async def payment_status_endpoint(reference: str):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+# PAYMENT HISTORY ENDPOINT
+# - This endpoint fetches a list of recent payment transactions from Paystack.
+# - Returns:
+#   - A dictionary containing the transaction history.
+# - Raises:
+#   - HTTPException with a 400 status code if fetching the transaction history fails.
 @router.get("/payment-history/", dependencies=[Depends(has_role(["admin"]))])
 async def payment_history_endpoint():
     try:
@@ -78,22 +116,14 @@ async def payment_history_endpoint():
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# @router.post("/webhook/")
-# async def paystack_webhook(request: Request):
-#     headers = request.headers
-#     raw_body = await request.body()
-#     try:
-#         parsed_body = json.loads(raw_body)
-#     except json.JSONDecodeError:
-#         parsed_body = None
-
-#     print(f"Headers: {headers}")
-#     print(f"Raw Body: {raw_body}")
-#     print(f"Parsed Body: {parsed_body}")
-
-#     return {"message": "Webhook received"}
-
-
+# PAYSTACK WEBHOOK ENDPOINT
+# - This endpoint processes incoming webhook events from Paystack.
+# - Parameters:
+#   - `request (Request)`: The HTTP request object containing the webhook data.
+# - Returns:
+#   - A message confirming receipt of the webhook event.
+# - Raises:
+#   - HTTPException with a 400 status code if the signature is invalid or the payload is malformed.
 @router.post("/webhook/")
 async def paystack_webhook(request: Request):
     headers = request.headers

@@ -1,4 +1,3 @@
-from sqlalchemy.orm import Session
 from db.models import Product, ProductImage
 from schema.product import ProductCreate
 import os
@@ -15,31 +14,30 @@ BASE_URL = "http://127.0.0.1:8000"  # Base URL of your server
 UPLOAD_DIR = "static/product_images"  # Directory to store uploaded images
 os.makedirs(UPLOAD_DIR, exist_ok=True)  # Create if it doesn't exist
 
+# ---------------------------
+# Product Image Management Functions
+# ---------------------------
 
+
+# ALLOWED FILE CHECK
+# - Checks if a file has an allowed extension (png, jpg, jpeg, gif).
+# - Parameters:
+#   - `filename (str)`: The file name to check.
+# - Returns:
+#   - `bool`: True if the file has an allowed extension; False otherwise.
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-# def upload_image(file: UploadFile):
-#     # Ensure the file type is allowed
-#     if not allowed_file(file.filename):
-#         raise HTTPException(
-#             status_code=400, detail="Invalid file type. Only images are allowed."
-#         )
-
-#     # Save the file to the designated location
-#     file_location = os.path.join(UPLOAD_DIR, file.filename)
-
-#     try:
-#         with open(file_location, "wb") as buffer:
-#             shutil.copyfileobj(file.file, buffer)
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Error saving file: {str(e)}")
-
-#     # Return the full URL path to the uploaded image
-#     return f"{BASE_URL}/static/product_images/{file.filename}"
-
-
+# IMAGE UPLOAD
+# - Handles the uploading of a product image and stores it in the specified directory.
+# - Parameters:
+#   - `file (UploadFile)`: The uploaded file object.
+#   - `product_id (int)`: The ID of the product to associate with the image.
+# - Returns:
+#   - `str`: The URL pointing to the uploaded image.
+# - Raises:
+#   - `HTTPException`: If there's an error saving the file.
 def upload_image(file: UploadFile, product_id: int) -> str:
     product_dir = os.path.join(UPLOAD_DIR)
     os.makedirs(product_dir, exist_ok=True)
@@ -56,6 +54,14 @@ def upload_image(file: UploadFile, product_id: int) -> str:
         raise HTTPException(status_code=500, detail=f"Error saving file: {str(e)}")
 
 
+# CREATE PRODUCT IMAGE
+# - Creates and saves a new image record for a product in the database.
+# - Parameters:
+#   - `db`: Database session.
+#   - `product_id (int)`: The ID of the product to associate with the image.
+#   - `image_url (str)`: The URL of the uploaded image.
+# - Returns:
+#   - `ProductImage`: The created image record.
 def create_product_image(db, product_id: int, image_url: str):
     """Create and save a new image record for a product."""
     new_image = ProductImage(product_id=product_id, image_url=image_url)
@@ -65,6 +71,16 @@ def create_product_image(db, product_id: int, image_url: str):
     return new_image
 
 
+# DELETE PRODUCT IMAGE
+# - Deletes an image record for a product from the database and the filesystem.
+# - Parameters:
+#   - `db`: Database session.
+#   - `product_id (int)`: The ID of the product associated with the image.
+#   - `image_id (int)`: The ID of the image to delete.
+# - Returns:
+#   - `ProductImage`: The deleted image record.
+# - Raises:
+#   - `HTTPException`: If the image is not found.
 def delete_product_image(db, product_id: int, image_id: int):
     """Delete an image record for a product from the database and filesystem."""
     image = (
@@ -86,11 +102,14 @@ def delete_product_image(db, product_id: int, image_id: int):
     return image
 
 
-# NEW
-# Validate File Size: Reject overly large images.
-# Validate Dimensions: Use libraries like Pillow to enforce specific width and height constraints.
-
-
+# VALIDATE IMAGE
+# - Validates the dimensions of the uploaded image to ensure it meets the constraints.
+# - Parameters:
+#   - `file (UploadFile)`: The uploaded file object.
+# - Returns:
+#   - None
+# - Raises:
+#   - `HTTPException`: If the image dimensions exceed the allowed limits.
 def validate_image(file: UploadFile):
     try:
         img = Image.open(file.file)
@@ -103,8 +122,15 @@ def validate_image(file: UploadFile):
         raise HTTPException(status_code=400, detail="Invalid image file")
 
 
-#  Add Asynchronous File Uploads
-# For improved scalability and performance, make the file upload process asynchronous if your setup supports it:
+# ASYNCHRONOUS IMAGE UPLOAD
+# - Handles the asynchronous uploading of a product image.
+# - Parameters:
+#   - `file (UploadFile)`: The uploaded file object.
+#   - `product_id (int)`: The ID of the product to associate with the image.
+# - Returns:
+#   - `str`: The URL pointing to the uploaded image.
+# - Raises:
+#   - `HTTPException`: If there's an error saving the file.
 async def async_upload_image(file: UploadFile, product_id: int):
     product_dir = os.path.join(UPLOAD_DIR, str(product_id))
     os.makedirs(product_dir, exist_ok=True)
@@ -120,6 +146,13 @@ async def async_upload_image(file: UploadFile, product_id: int):
     return f"{BASE_URL}/static/product_images/{product_id}/{file.filename}"
 
 
+# CREATE PRODUCT
+# - Creates a new product and saves it to the database.
+# - Parameters:
+#   - `db (db_dependency)`: Database session.
+#   - `product (ProductCreate)`: Product data to be saved.
+# - Returns:
+#   - `Product`: The created product.
 def create_product(
     db: db_dependency,
     product: ProductCreate,
@@ -138,6 +171,14 @@ def create_product(
     return db_product
 
 
+# GET ALL PRODUCTS
+# - Retrieves all products from the database, with optional pagination.
+# - Parameters:
+#   - `db (db_dependency)`: Database session.
+#   - `skip (int)`: Number of products to skip (default: 0).
+#   - `limit (int)`: Maximum number of products to return (default: 10).
+# - Returns:
+#   - `List[Product]`: List of products.
 def get_all_products(
     db: db_dependency, skip: int = 0, limit: int = 10
 ) -> List[Product]:
@@ -146,11 +187,24 @@ def get_all_products(
 
 
 # GET PRODUCT BY ID
+# - Retrieves a product by its ID from the database.
+# - Parameters:
+#   - `db (db_dependency)`: Database session.
+#   - `product_id (int)`: The ID of the product to retrieve.
+# - Returns:
+#   - `Product`: The product with the specified ID, or None if not found.
 def get_product_by_id(db: db_dependency, product_id: int):
     return db.query(Product).filter(Product.id == product_id).first()
 
 
 # UPDATE PRODUCT
+# - Updates an existing product based on the provided data.
+# - Parameters:
+#   - `db (db_dependency)`: Database session.
+#   - `product_id (int)`: The ID of the product to update.
+#   - `product_data (ProductCreate)`: New data for the product.
+# - Returns:
+#   - `Product`: The updated product, or None if the product was not found.
 def update_product_by_id(
     db: db_dependency, product_id: int, product_data: ProductCreate
 ):
@@ -170,6 +224,12 @@ def update_product_by_id(
 
 
 # DELETE PRODUCT
+# - Deletes a product by its ID from the database.
+# - Parameters:
+#   - `db (db_dependency)`: Database session.
+#   - `product_id (int)`: The ID of the product to delete.
+# - Returns:
+#   - `Product`: The deleted product, or None if the product was not found.
 def delete_product_by_id(db: db_dependency, product_id: int):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
@@ -179,7 +239,14 @@ def delete_product_by_id(db: db_dependency, product_id: int):
     return product
 
 
-# UPLOAD IMAGES
+# UPLOAD PRODUCT IMAGES
+# - Uploads an image for a specific product and associates it with the product in the database.
+# - Parameters:
+#   - `db (db_dependency)`: Database session.
+#   - `product_id (int)`: The ID of the product to associate with the image.
+#   - `file (UploadFile)`: The uploaded image file.
+# - Returns:
+#   - `Product`: The updated product with the associated
 def upload_product_image(db: db_dependency, product_id: int, file: UploadFile):
     # File type validation
     if not allowed_file(file.filename):

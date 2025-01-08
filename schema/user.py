@@ -41,10 +41,6 @@ class UserResponse(UserBase):
     created_at: datetime
     orders: Optional[List["OrderResponse"]] = []
 
-    # @property
-    # def formatted_created_at(self) -> str:
-    #     return self.created_at.strftime("%A, %B %d, %Y")
-
     class Config:
         from_attributes = True
 

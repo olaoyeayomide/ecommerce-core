@@ -7,6 +7,7 @@ from core.mfa import generate_totp_code
 from datetime import timedelta
 
 
+# Email Configuration
 conf = ConnectionConfig(
     MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
     MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
@@ -21,6 +22,18 @@ conf = ConnectionConfig(
 )
 
 
+# SEND EMAIL
+# Sends an email to the specified recipient.
+# - Parameters:
+#   - `subject` (str): The subject of the email.
+#   - `recipient` (str): The email address of the recipient.
+#   - `body` (str): The content of the email body.
+#   - `subtype` (str): The format of the email content, e.g., 'plain' or 'html'.
+# - Raises:
+#   - `HTTPException`: If the email fails to send.
+# - Details:
+#   - This function uses FastMail to send an email. It requires the email configuration (`conf`)
+#     to be properly set up with valid credentials and server details.
 async def send_email(subject: str, recipient: str, body: str, subtype="plain"):
     """
     A reusable function to send an email.
@@ -39,14 +52,21 @@ async def send_email(subject: str, recipient: str, body: str, subtype="plain"):
         raise HTTPException(status_code=500, detail=f"Failed to send email: {e}")
 
 
+# GENERATE AND SEND TOTP CODE
+# Sends an email to the specified recipient.
+# - Parameters:
+#   - `subject` (str): The subject of the email.
+#   - `recipient` (str): The email address of the recipient.
+#   - `body` (str): The content of the email body.
+#   - `subtype` (str): The format of the email content, e.g., 'plain' or 'html'.
+# - Raises:
+#   - `HTTPException`: If the email fails to send.
+# - Details:
+#   - This function uses FastMail to send an email. It requires the email configuration (`conf`)
+#     to be properly set up with valid credentials and server details.
 async def send_otp_code(user: User):
-    """
-    Generates and sends a TOTP code to the user's email.
-    Assumes the user has 2FA enabled and an `otp_secret` in the database.
-    """
     if not user.otp_secret:
         raise HTTPException(status_code=400, detail="2FA is not enabled for this user.")
-
     totp_code = generate_totp_code(user.otp_secret)
     print(f"Sending TOTP code: {totp_code}")
 
@@ -59,6 +79,14 @@ async def send_otp_code(user: User):
     return {"message": "TOTP code sent to email"}
 
 
+# SEND ACCOUNT VERIFICATION EMAIL
+# Sends an account verification email to the user.
+# - Parameters:
+#   - `email` (str): The user's email address.
+#   - `user` (User): The user object containing account details.
+# - Details:
+#   - This function generates a token for email verification and sends it as a link to the user's email.
+#     The link allows the user to verify their account within an hour.
 async def send_verification_email(email: str, user: User):
     token = create_access_token(
         user_id=user.id,
@@ -98,13 +126,19 @@ async def send_verification_email(email: str, user: User):
     )
 
 
+# SEND A PASSWORD RESET EMAIL
+# Sends a password reset email to the user.
+# - Parameters:
+#   - `user` (User): The user object containing email details.
+# - Details:
+#   - This function generates a password reset token and sends a link to the user's email.
+#     The link allows the user to reset their password.
 async def send_password_reset_email(user: User):
     reset_token = create_password_reset_token(user.email)
 
     # Create the reset link
     reset_link = f"http://localhost:8000/reset-password?token={reset_token}"
 
-    # Compose the email body with a button
     email_body = f"""
         <!DOCTYPE html>
         <html>
@@ -124,8 +158,6 @@ async def send_password_reset_email(user: User):
         </body>
         </html>
     """
-
-    # Send the email with the button included
     await send_email(
         subject="Password Reset Request",
         recipient=user.email,
