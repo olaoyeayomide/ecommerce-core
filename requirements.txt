@@ -34,7 +34,7 @@ mdurl==0.1.2
 ngrok==1.4.0
 orjson==3.10.7
 passlib==1.7.4
-paystack==11.2.0
+paystack==1.5.0
 paystackapi==2.1.3
 pillow==11.0.0
 psycopg2==2.9.10
