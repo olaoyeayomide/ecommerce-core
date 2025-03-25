@@ -17,6 +17,7 @@ from core.rbac import has_role
 
 router = APIRouter()
 
+
 # === USER ENDPOINTS ===
 
 
@@ -35,9 +36,13 @@ router = APIRouter()
 async def create_new_user(user: UserCreate, db: db_dependency):
     db_user = await create_user(db=db, user=user)
     await send_verification_email(db_user.email, db_user)
+
+    # Pydantic V2 Compatibility:
+    user_response = UserResponse.model_validate(db_user)
+
     return {
         "msg": "User registered successfully. Please check your email to verify your account.",
-        "details": UserResponse.from_orm(db_user).dict(),
+        "details": user_response.dict(),
     }
 
 
